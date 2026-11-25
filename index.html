@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מפלסי מים בקידוחים — נתונים אינטראקטיביים</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .status {
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    select, .range-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    select:hover, .range-btn:hover {
+      border-color: #94a3b8;
+    }
+    .range-btn.active {
+      background: #1d4ed8;
+      color: #ffffff;
+      border-color: #1d4ed8;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .stat-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    #chart {
+      width: 100%;
+      height: 560px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1 id="pageTitle">סדרת זמן — Meizar 1</h1>
+        <div id="status" class="status">טוען נתונים...</div>
+      </div>
+
+      <div class="toolbar">
+        <div class="control-group">
+          <label for="boreholeSelect">קידוח:</label>
+          <select id="boreholeSelect">
+            <option value="data/Meizar1WA.csv" selected>Meizar 1</option>
+            <option value="data/Meizar2WA.csv">Meizar 2</option>
+            <option value="data/Meizar3WA.csv">Meizar 3</option>
+            <option value="data/EinHashofetWA.csv">Ein Hashofet</option>
+            <option value="data/Kinneret8WA.csv">Kinneret 8</option>
+            <option value="data/Kinneret10bWA.csv">Kinneret 10b</option>
+            <option value="data/Livnim1WA.csv">Livnim 1</option>
+            <option value="data/Haon1WA.csv">Haon 1</option>
+            <option value="data/Haon2WA.csv">Haon 2</option>
+            <option value="data/gome1WA.csv">Gome 1</option>
+            <option value="data/Zofar20WA.csv">Zofar 20</option>
+          </select>
+
+          <label for="seriesSelect">משתנה:</label>
+          <select id="seriesSelect">
+            <option value="level" selected>מפלס מים (m)</option>
+            <option value="secondary">עומק למפלס / לחץ</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="rangeButtons">
+          <label>טווח זמן:</label>
+          <button type="button" class="range-btn active" data-range="all">הכל</button>
+          <button type="button" class="range-btn" data-range="5y">5 שנים</button>
+          <button type="button" class="range-btn" data-range="1y">שנה</button>
+          <button type="button" class="range-btn" data-range="6m">6 חודשים</button>
+          <button type="button" class="range-btn" data-range="1m">חודש</button>
+        </div>
+
+        <div class="control-group" id="yZoomButtons">
+          <label>ציר אנכי:</label>
+          <button type="button" class="range-btn active" data-drag="pan">גרירה</button>
+          <button type="button" class="range-btn" data-drag="zoom">זום מלבני (X+Y)</button>
+          <button type="button" class="range-btn" id="yZoomIn">זום Y +</button>
+          <button type="button" class="range-btn" id="yZoomOut">זום Y -</button>
+          <button type="button" class="range-btn" id="yReset">איפוס Y</button>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="stat">
+          <div class="stat-label">ערך אחרון</div>
+          <div id="latestVal" class="stat-value">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">תאריך מדידה אחרונה</div>
+          <div id="latestDate" class="stat-value">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">מספר תצפיות רציפות</div>
+          <div id="countVal" class="stat-value">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">מדידות ידניות / טווח</div>
+          <div id="extraStatVal" class="stat-value">—</div>
+        </div>
+      </div>
+
+      <div id="chart"></div>
+    </div>
+  </div>
+
+  <script>
+    let parsedRows = [];
+    let parsedFields = [];
+    let activeRange = "all";
+    let activeDragMode = "pan";
+
+    const TS_ANY_RE = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/;
+    const EXCEL_EPOCH_UTC_MS = Date.UTC(1899, 11, 30);
+    const MS_PER_DAY = 86400 * 1000;
+
+    function parseExcelSerialDate(val) {
+      if (val === undefined || val === null) return null;
+      const str = String(val).trim();
+      if (!str || !/^[+-]?\d+(\.\d+)?$/.test(str)) return null;
+      const serial = Number(str);
+      if (!Number.isFinite(serial) || serial < 20000 || serial > 80000) return null;
+      const totalMinutes = Math.round(serial * 1440);
+      const d = new Date(EXCEL_EPOCH_UTC_MS + totalMinutes * 60000);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function buildValidDate(year, month, day, hh, mm) {
+      if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+      const d = new Date(year, month - 1, day, hh, mm, 0, 0);
+      if (
+        d.getFullYear() !== year ||
+        d.getMonth() !== month - 1 ||
+        d.getDate() !== day ||
+        d.getHours() !== hh ||
+        d.getMinutes() !== mm
+      ) {
+        return null;
+      }
+      return d;
+    }
+
+    function formatIsoLocal(d) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+    }
+
+    function parseMixedTimestamps(strings) {
+      const n = strings.length;
+      const candidates = new Array(n).fill(null);
+      const settled = new Array(n).fill(null);
+      const directDates = new Array(n).fill(null);
+
+      for (let i = 0; i < n; i++) {
+        const s = strings[i];
+        if (typeof s !== "string") continue;
+        const excelDt = parseExcelSerialDate(s);
+        if (excelDt) {
+          directDates[i] = excelDt;
+          continue;
+        }
+        const m = TS_ANY_RE.exec(s);
+        if (!m) continue;
+        const a = parseInt(m[1], 10);
+        const b = parseInt(m[2], 10);
+        const y = parseInt(m[3], 10);
+        const hh = parseInt(m[4], 10);
+        const mm = parseInt(m[5], 10);
+
+        const c = {};
+        const dmy = buildValidDate(y, b, a, hh, mm);
+        const mdy = buildValidDate(y, a, b, hh, mm);
+        if (dmy) c.dmy = dmy;
+        if (mdy) c.mdy = mdy;
+
+        const keys = Object.keys(c);
+        if (keys.length === 0) continue;
+        candidates[i] = c;
