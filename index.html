@@ -3,68 +3,174 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>מפלס מים — Meizar 1</title>
+  <title>מפלסי מים בקידוחים — נתונים אינטראקטיביים</title>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      margin: 24px;
-      background: #f8fafc;
+      font-family: Arial, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f1f5f9;
       color: #0f172a;
     }
-    .card {
-      max-width: 1150px;
+    .container {
+      max-width: 1200px;
       margin: 0 auto;
+    }
+    .card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 20px;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
     }
-    .controls {
-      margin: 10px 0 16px;
+    .header {
       display: flex;
-      gap: 12px;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .status {
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
       align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       flex-wrap: wrap;
     }
-    select {
-      padding: 6px 10px;
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    select, .range-btn {
+      padding: 6px 12px;
       border-radius: 6px;
       border: 1px solid #cbd5e1;
-      font-size: 0.95rem;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .range-btn.active {
+      background: #1d4ed8;
+      color: #ffffff;
+      border-color: #1d4ed8;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .stat-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-top: 2px;
     }
     #chart {
       width: 100%;
-      height: 540px;
-    }
-    .meta {
-      color: #475569;
-      font-size: 0.9rem;
+      height: 560px;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>סדרת זמן — Meizar 1</h2>
-    <div id="status" class="meta">טוען נתונים מתוך data/Meizar1WA.csv...</div>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1 id="pageTitle">סדרת זמן — Meizar 1</h1>
+        <div id="status" class="status">טוען נתונים...</div>
+      </div>
 
-    <div class="controls">
-      <label for="seriesSelect">תצוגת סדרה:</label>
-      <select id="seriesSelect">
-        <option value="asl" selected>מפלס מעל פני הים — above sea level (m)</option>
-        <option value="depth">עומק למפלס — depth to water level (m)</option>
-      </select>
+      <div class="toolbar">
+        <div class="control-group">
+          <label for="boreholeSelect">קידוח:</label>
+          <select id="boreholeSelect">
+            <option value="data/Meizar1WA.csv" selected>Meizar 1</option>
+            <!-- כשתעלה קבצים נוספים לתיקיית data/, בטל הערה או הוסף שורות:
+            <option value="data/Meizar2WA.csv">Meizar 2</option>
+            <option value="data/Meizar3WA.csv">Meizar 3</option>
+            <option value="data/EinHashofetWA.csv">Ein Hashofet</option>
+            <option value="data/Kinneret8WA.csv">Kinneret 8</option>
+            -->
+          </select>
+
+          <label for="seriesSelect">משתנה:</label>
+          <select id="seriesSelect">
+            <option value="asl" selected>מפלס מעל פני הים (m)</option>
+            <option value="depth">עומק למפלס (m)</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="rangeButtons">
+          <label>טווח זמן:</label>
+          <button type="button" class="range-btn active" data-range="all">הכל</button>
+          <button type="button" class="range-btn" data-range="5y">5 שנים</button>
+          <button type="button" class="range-btn" data-range="1y">שנה</button>
+          <button type="button" class="range-btn" data-range="6m">6 חודשים</button>
+          <button type="button" class="range-btn" data-range="1m">חודש</button>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="stat">
+          <div class="stat-label">ערך אחרון</div>
+          <div id="latestVal" class="stat-value">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">תאריך מדידה אחרונה</div>
+          <div id="latestDate" class="stat-value">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">מספר תצפיות רציפות</div>
+          <div id="countVal" class="stat-value">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">מדידות ידניות</div>
+          <div id="manualCountVal" class="stat-value">—</div>
+        </div>
+      </div>
+
+      <div id="chart"></div>
     </div>
-
-    <div id="chart"></div>
   </div>
 
   <script>
-    const CSV_PATH = "data/Meizar1WA.csv";
     let parsedRows = [];
+    let activeRange = "all";
 
-    // ממיר מחרוזת "DD/MM/YYYY HH:MM" לפורמט ISO "YYYY-MM-DD HH:MM:00" ש-Plotly קורא במדויק
     function parseTimestamp(str) {
       if (!str) return null;
       const parts = str.trim().split(/\s+/);
@@ -75,7 +181,26 @@
       return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}T${timePart}`;
     }
 
-    function renderChart(mode) {
+    function getXAxisRange(maxIsoStr) {
+      if (activeRange === "all" || !maxIsoStr) return null;
+      const endDate = new Date(maxIsoStr);
+      if (Number.isNaN(endDate.getTime())) return null;
+      const startDate = new Date(endDate);
+
+      if (activeRange === "5y") startDate.setFullYear(startDate.getFullYear() - 5);
+      else if (activeRange === "1y") startDate.setFullYear(startDate.getFullYear() - 1);
+      else if (activeRange === "6m") startDate.setMonth(startDate.getMonth() - 6);
+      else if (activeRange === "1m") startDate.setMonth(startDate.getMonth() - 1);
+
+      return [startDate.toISOString(), endDate.toISOString()];
+    }
+
+    function renderChart() {
+      const mode = document.getElementById("seriesSelect").value;
+      const boreholeName =
+        document.getElementById("boreholeSelect").selectedOptions[0].text;
+      document.getElementById("pageTitle").textContent = `סדרת זמן — ${boreholeName}`;
+
       const mainX = [];
       const mainY = [];
       const manX = [];
@@ -102,8 +227,19 @@
         }
       }
 
-      document.getElementById("status").textContent =
-        `תצפיות רציפות: ${mainX.length.toLocaleString()} | מדידות ידניות: ${manX.length} | נקודה אחרונה: ${mainX[mainX.length - 1] || ""}`;
+      if (mainX.length === 0) {
+        document.getElementById("status").textContent =
+          "לא נמצאו נתונים תקינים בעמודות המבוקשות.";
+        Plotly.purge("chart");
+        return;
+      }
+
+      const lastIdx = mainX.length - 1;
+      document.getElementById("latestVal").textContent = `${mainY[lastIdx].toFixed(3)} m`;
+      document.getElementById("latestDate").textContent = mainX[lastIdx].replace("T", " ");
+      document.getElementById("countVal").textContent = mainX.length.toLocaleString();
+      document.getElementById("manualCountVal").textContent = manX.length.toLocaleString();
+      document.getElementById("status").textContent = "הנתונים נטענו בהצלחה";
 
       const traces = [
         {
@@ -124,33 +260,62 @@
         }
       ];
 
+      const xaxisConfig = {
+        title: "תאריך ושעה",
+        rangeslider: { visible: true, thickness: 0.06 }
+      };
+
+      const computedRange = getXAxisRange(mainX[lastIdx]);
+      if (computedRange) {
+        xaxisConfig.range = computedRange;
+      }
+
       const layout = {
-        xaxis: { title: "תאריך ושעה" },
+        xaxis: xaxisConfig,
         yaxis: { title: yTitle },
         hovermode: "x unified",
-        margin: { t: 20, r: 20, b: 60, l: 70 }
+        legend: { orientation: "h", y: 1.12 },
+        margin: { t: 30, r: 20, b: 60, l: 75 }
       };
 
       Plotly.newPlot("chart", traces, layout, { responsive: true });
     }
 
-    Papa.parse(CSV_PATH, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: function (results) {
-        parsedRows = results.data;
-        renderChart("asl");
-      },
-      error: function (err) {
-        document.getElementById("status").textContent =
-          "שגיאה בטעינת הקובץ: " + err.message;
-      }
+    function loadCsv(csvPath) {
+      document.getElementById("status").textContent = `טוען נתונים מתוך ${csvPath}...`;
+      Papa.parse(csvPath, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function (results) {
+          parsedRows = results.data;
+          renderChart();
+        },
+        error: function (err) {
+          document.getElementById("status").textContent =
+            "שגיאה בטעינת הקובץ: " + err.message;
+        }
+      });
+    }
+
+    document.getElementById("boreholeSelect").addEventListener("change", (e) => {
+      loadCsv(e.target.value);
     });
 
-    document.getElementById("seriesSelect").addEventListener("change", (e) => {
-      renderChart(e.target.value);
+    document.getElementById("seriesSelect").addEventListener("change", () => {
+      renderChart();
     });
+
+    document.querySelectorAll(".range-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".range-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeRange = btn.dataset.range;
+        renderChart();
+      });
+    });
+
+    loadCsv(document.getElementById("boreholeSelect").value);
   </script>
 </body>
 </html>
