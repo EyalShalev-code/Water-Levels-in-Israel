@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מפלס מים — Meizar 1</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .card {
+      max-width: 1150px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .controls {
+      margin: 10px 0 16px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    select {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.95rem;
+    }
+    #chart {
+      width: 100%;
+      height: 540px;
+    }
+    .meta {
+      color: #475569;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>סדרת זמן — Meizar 1</h2>
+    <div id="status" class="meta">טוען נתונים מתוך data/Meizar1WA.csv...</div>
+
+    <div class="controls">
+      <label for="seriesSelect">תצוגת סדרה:</label>
+      <select id="seriesSelect">
+        <option value="asl" selected>מפלס מעל פני הים — above sea level (m)</option>
+        <option value="depth">עומק למפלס — depth to water level (m)</option>
+      </select>
+    </div>
+
+    <div id="chart"></div>
+  </div>
+
+  <script>
+    const CSV_PATH = "data/Meizar1WA.csv";
+    let parsedRows = [];
+
+    // ממיר מחרוזת "DD/MM/YYYY HH:MM" לפורמט ISO "YYYY-MM-DD HH:MM:00" ש-Plotly קורא במדויק
+    function parseTimestamp(str) {
+      if (!str) return null;
+      const parts = str.trim().split(/\s+/);
+      if (parts.length < 2) return null;
+      const [dd, mm, yyyy] = parts[0].split("/");
+      if (!dd || !mm || !yyyy) return null;
+      const timePart = parts[1].length === 5 ? parts[1] + ":00" : parts[1];
+      return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}T${timePart}`;
+    }
+
+    function renderChart(mode) {
+      const mainX = [];
+      const mainY = [];
+      const manX = [];
+      const manY = [];
+
+      const mainCol = mode === "asl" ? "above sea level (m)" : "depth to water level (m)";
+      const manCol  = mode === "asl" ? "above sea level (m).1" : "Unnamed: 3";
+      const yTitle  = mode === "asl" ? "מפלס מעל פני הים (m)" : "עומק למפלס (m)";
+
+      for (const row of parsedRows) {
+        const ts = parseTimestamp(row["TIMESTAMP"]);
+        if (!ts) continue;
+
+        const vMain = parseFloat(row[mainCol]);
+        if (!Number.isNaN(vMain)) {
+          mainX.push(ts);
+          mainY.push(vMain);
+        }
+
+        const vMan = parseFloat(row[manCol]);
+        if (!Number.isNaN(vMan)) {
+          manX.push(ts);
+          manY.push(vMan);
+        }
+      }
+
+      document.getElementById("status").textContent =
+        `תצפיות רציפות: ${mainX.length.toLocaleString()} | מדידות ידניות: ${manX.length} | נקודה אחרונה: ${mainX[mainX.length - 1] || ""}`;
+
+      const traces = [
+        {
+          x: mainX,
+          y: mainY,
+          type: "scatter",
+          mode: "lines",
+          name: "נתונים מעובדים",
+          line: { width: 1.5, color: "#1d4ed8" }
+        },
+        {
+          x: manX,
+          y: manY,
+          type: "scatter",
+          mode: "markers",
+          name: "מדידות ידניות",
+          marker: { size: 7, color: "#dc2626", symbol: "circle" }
+        }
+      ];
+
+      const layout = {
+        xaxis: { title: "תאריך ושעה" },
+        yaxis: { title: yTitle },
+        hovermode: "x unified",
+        margin: { t: 20, r: 20, b: 60, l: 70 }
+      };
+
+      Plotly.newPlot("chart", traces, layout, { responsive: true });
+    }
+
+    Papa.parse(CSV_PATH, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        parsedRows = results.data;
+        renderChart("asl");
+      },
+      error: function (err) {
+        document.getElementById("status").textContent =
+          "שגיאה בטעינת הקובץ: " + err.message;
+      }
+    });
+
+    document.getElementById("seriesSelect").addEventListener("change", (e) => {
+      renderChart(e.target.value);
+    });
+  </script>
+</body>
+</html>
